@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# List of Pokémon to fetch
+POKEMON_LIST=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon" "invalid-pokemon")
+API_BASE_URL="https://pokeapi.co/api/v2/pokemon/"
+DATA_DIR="pokemon_data"
+DELAY_SECONDS=1
+MAX_RETRIES=3
+
+# Create the directory if it doesn't exist
+mkdir -p "$DATA_DIR"
+
+# Loop through the list of Pokémon
+for pokemon in "${POKEMON_LIST[@]}"; do
+    echo "Fetching data for $pokemon..."
+
+    API_URL="${API_BASE_URL}${pokemon}"
+    OUTPUT_FILE="${DATA_DIR}/${pokemon}.json"
+    
+    # Retry loop
+    for attempt in $(seq 1 $MAX_RETRIES); do
+        # Make the API request and capture HTTP status code
+        response=$(curl -sS -w "%{http_code}" "$API_URL" -o "$OUTPUT_FILE")
+        http_status=${response: -3}
+
+        # Check if the HTTP status code is 200 (OK)
+        if [ "$http_status" -eq 200 ]; then
+            echo "Saved data to $OUTPUT_FILE ✅"
+            break # Exit the retry loop on success
+        else
+            # Log the error for this attempt
+            echo "Attempt $attempt failed for $pokemon. HTTP Status: $http_status. Retrying..."
+            # Clean up the potentially incomplete file
+            rm -f "$OUTPUT_FILE"
+            
+            # If it's the last attempt, log a final failure message and break
+            if [ "$attempt" -eq "$MAX_RETRIES" ]; then
+                echo "Failed to fetch data for $pokemon after $MAX_RETRIES attempts. Skipping."
+            fi
+            
+            # Add a delay between retries
+            sleep "$DELAY_SECONDS"
+        fi
+    done
+done
+
+echo "Batch processing complete."

@@ -1,0 +1,35 @@
+#!/bin/bash
+
+DATA_FILE="data.json"
+
+# Check if the data file exists
+if [ ! -f "$DATA_FILE" ]; then
+    echo "Error: The file $DATA_FILE does not exist. Please run Task 0 first."
+    exit 1
+fi
+
+# Use jq to extract the required data in a single, space-separated line
+# Name: .name
+# Height: .height
+# Weight: .weight
+# Type: .types[0].type.name (assuming the first type is sufficient)
+data=$(jq -r '[.name, .height, .weight, .types[0].type.name] | join(" ")' "$DATA_FILE")
+
+# Use awk to format the output
+# The 'data' variable now contains "pikachu 4 6 electric" (height and weight are in decimeters/hectograms)
+# We'll use awk to divide them by 10 to get meters and kilograms.
+#
+# $1: Name (e.g., pikachu)
+# $2: Height (e.g., 4)
+# $3: Weight (e.g., 6)
+# $4: Type (e.g., electric)
+#
+# The output format is: "Pikachu is of type Electric, weighs 6kg, and is 0.4m tall."
+
+echo "$data" | awk '{
+    name = toupper(substr($1, 1, 1)) substr($1, 2);
+    type = toupper(substr($4, 1, 1)) substr($4, 2);
+    height_m = $2 / 10;
+    weight_kg = $3 / 10;
+    printf "%s is of type %s, weighs %s kg, and is %s m tall.\n", name, type, weight_kg, height_m;
+}'
