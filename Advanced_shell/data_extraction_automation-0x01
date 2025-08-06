@@ -1,5 +1,48 @@
 #!/bin/bash
 
+# Define the data file created by Task 0
+DATA_FILE="data.json"
+
+# Check if the data file exists
+if [ ! -f "$DATA_FILE" ]; then
+    echo "Error: The file $DATA_FILE does not exist. Please run Task 0 first."
+    exit 1
+fi
+
+# Use jq to extract the Pokémon's name, height, weight, and first type.
+# The output is formatted as a single, space-separated line.
+# Example output: "pikachu 4 6 electric"
+pokemon_data=$(jq -r '[.name, .height, .weight, .types[0].type.name] | join(" ")' "$DATA_FILE")
+
+# Use awk to convert height and weight, and format the output string.
+# We'll use placeholder strings for the name and type that we will later replace with sed.
+# awk's printf handles the decimal conversion for height and weight.
+formatted_output=$(echo "$pokemon_data" | awk '{
+    height_m = $2 / 10;
+    weight_kg = $3 / 10;
+    printf "NAME is of type TYPE, weighs %.1fkg, and is %.1fm tall.", weight_kg, height_m;
+}')
+
+# Now use sed to perform the case changes and string substitutions.
+# 1. Capitalize the first letter of the name using sed.
+# 2. Capitalize the first letter of the type using sed.
+# 3. Use sed again to replace the placeholders in the formatted string.
+
+# Extract and capitalize the name
+name=$(echo "$pokemon_data" | awk '{print $1}' | sed 's/\(.\)/\U&/')
+
+# Extract and capitalize the type
+type=$(echo "$pokemon_data" | awk '{print $4}' | sed 's/\(.\)/\U&/')
+
+# Use sed to substitute the placeholders in the formatted string.
+# The 'g' flag ensures all occurrences are replaced (though we only have one).
+final_output=$(echo "$formatted_output" | sed "s/NAME/$name/g" | sed "s/TYPE/$type/g")
+
+# Print the final result to standard output
+echo "$final_output"
+
+"""#!/bin/bash
+
 DATA_FILE="data.json"
 
 # Check if the data file exists
@@ -32,4 +75,4 @@ echo "$data" | awk '{
     height_m = $2 / 10;
     weight_kg = $3 / 10;
     printf "%s is of type %s, weighs %s kg, and is %s m tall.\n", name, type, weight_kg, height_m;
-}'
+}' """
